@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>OCR Japanese Manga</title>
+    <script src="minicropper.js"></script>
+    <script src="miniJquery.js"></script>
+
+    <script src="tesseract/tesseract.api.js"></script>
+    <script src="kuromoji/kuromoji.js"></script>
+    <script src="kuromoji/kuromoji.api.js"></script>
+    <script src="warodai/warodai.api.js"></script>
+
+    <script src="lib/transTokens.js"></script>    
+    <script src="lib/image-filters.js"></script>
+    <script src='lib/wanakana-mods.js'></script>
+    <script src="lib/common.js"></script>
+</head>
+
+<body>
+<style>
+  .header {
+      margin-bottom: 13px;
+  }
+  .header__title {
+      padding: 10px;
+      padding-bottom: 10px;
+      padding-left: 20px;
+      padding-top: 4px;
+      background: #8bc34a;
+      font-size: 22px;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: white;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  }
+  .header__title1 {
+      display: flex;
+  }
+  .header__subtitle {
+      font-size: 18px;
+  }
+  .header__item {
+      padding-left: 20px;
+  }
+  .header__link {
+      text-decoration: none;
+      color: white;
+      margin-left: auto;
+      margin-right: 14px;
+  }
+  
+  .submenu {
+      display: flex;
+  }
+  
+  .options-links {
+      display: flex;
+  }
+  .options-links__item {
+      margin-right: 10px;
+  }
+  
+  .button {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      border: 1px solid #c3c3c3;
+      border-radius: 2px;
+      //- border-radius: 5px;
+  }
+  .button_hover {
+      background: #cccccc;
+  }
+  .button__link {
+      color: #333;
+      display: block;
+      padding: 4px 7px;
+      text-decoration: none;
+  }
+  
+  .github-logo {
+      display: flex;
+      align-items: center;
+  }
+  .github-logo__item {
+      flex:1 1 auto;
+      font-size: 16px;
+      fill: currentColor;
+  }
+  
+  .content {
+      margin: 0px 20px;
+      display: flex;
+      min-height: 360px;
+  }
+  .content__item {
+      flex: 1;
+  }
+  .content__item_divider {
+      flex: 0 1 20px;
+  }
+  .content__item_more {
+      flex: 4;
+  }
+  .content__item_less {
+      flex: 2;
+  }
+  
+  .dropzone {
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: 2px dashed #333;
+  }
+  .dropzone_hover {
+      border: 2px solid #333;
+  }
+  .dropzone__img {
+      max-width: 100%;
+  }
+  .dropzone__label {
+      font-size: 18px;
+  }
+  .demolinks {
+      display: flex;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 16px;
+  }
+  .demolinks__link:not(:last-child) {
+      margin-right: 15px;
+  }
+  .demolinks__link {
+      //- text-decoration: none;
+      color: #333333;
+  }
+  
+  .dropzoneInfo {
+      //- font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 18px;
+  }
+  .dropzoneInfo__item {
+      margin-top: 40px;
+      margin-bottom: 40px;
+  }
+  .dropzoneInfo__input {
+      width: 100%;
+      font-size: 16px;
+      height: 16px;
+      padding: 6px;
+  }
+  
+  .tokensTable {
+      font-size: 14px;
+      font-family: "Helvetica Neue", Helvetica, Roboto, Arial, sans-serif;
+  }
+  .tokensTable__thead {
+      background: #f5f5f5;
+  }
+  .tokensTable__th {
+      padding: 6px;
+  }
+  .tokensTable__table {
+      border: 1px solid #dddddd;
+  }
+  .tokensBody__td {
+      padding: 6px;
+  }
+  .transInfo i {
+      color: green;
+  }
+  .tokensBody__tr:nth-of-type(2n+1) {
+      background: #f9f9f9;
+  }
+  .tokensTable__label {
+      color: #4d4d4d;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 18px;
+      margin-bottom: 10px;
+  }
+  .tokensTable__input {
+      box-sizing: border-box;
+      width: 100%;
+      margin-bottom: 16px;
+      padding: 4px;
+      padding-left: 8px;
+      font-size: 18px;
+  }
+  
+  .translator__input {
+      font-size: 16px;
+      padding: 2px;
+      width: 250px;
+      box-sizing: border-box;
+  }
+  .translator__button {
+      height: 20px;
+  }
+  .translator__result {
+      margin-top: 5px;
+      font-size: 16px;
+  }
+  .translator__result i {
+      color: green;
+  }
+  
+  .hiragana * {
+      font-size: 18px;
+  }
+  .hiragana__kana {
+      border: 1px solid #999;
+      border-radius: 2px;
+      padding: 0px 8px;
+      margin-bottom: 6px;
+      height: 28px;
+      cursor: pointer;
+  }
+  .hiragana__input {
+      display: flex;
+      text-align: center;
+      margin: auto;
+      box-sizing: border-box;
+      width: 50%;
+      margin-bottom: 16px;
+      padding: 4px;
+      font-size: 18px;
+  }
+  .hiragana__flex {
+      display: flex;
+      justify-content: flex-end;
+  }
+  .hiragana__changeToHiragana {
+      text-decoration: none;
+      margin-right: 6px;
+      border: 1px solid #333;
+      border-radius: 2px;
+      color: black;
+      padding: 4px;
+  }
+  .hiragana__changeToKatakana {
+      text-decoration: none;
+      border: 1px solid #333;
+      border-radius: 2px;
+      color: black;
+      padding: 4px;
+  }
+  .ocr-params {
+      border: 1px solid #ccc;
+      padding: 6px;
+      border-radius: 2px;
+      margin-bottom: 10px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 16px;
+  }
+  .ocr-params__inputlabel {
+      padding: 4px 10px;
+      border: 1px solid #ccc;
+      border-radius: 2px;
+  }
+  .ocr-params__item {
+      font-size: 16px;
+      margin-bottom: 6px;
+  }
+  .ocr-params__label {
+      margin-bottom: 6px;
+  }
+  .ocr-params__inputlabel {
+      margin-right: 10px;
+  }
+  .ocr-params__input[type="radio"]:checked+.ocr-params__inputlabel {
+      //- background: #9E9E9E;
+      //- color: white;
+      background: #cccccc;
+      color: black;
+  }
+  .ocr-params__input[type="radio"] {
+      display: none;
+  }
+  
+  .result {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .result__item {
+      font-size: 18px;
+      margin-bottom: 6px;
+  }
+  .result__label {
+      margin-bottom: 6px;
+  }
+  .result__label_result-orig {
+      width: 100%;
+      font-size: 18px;
+      overflow: auto;
+  }
+  .result__load-progress {
+  }
+  .result__parse-progress {
+  }
+  .result__go {
+      display: flex;
+  }
+  .result__go .button {
+      background: #CDDC39;
+  }
+  
+  .help {
+      margin-bottom: 6px;
+      display: flex;
+  }
+  .helptext {
+      position: absolute;
+      top: 0;
+      left: 0;
+      padding: 30px;
+      margin: 50px;
+      background: white;
+      border: 1px solid #333;
+  }
+  .helptext__block {
+      padding: 4px;
+      border: 1px solid #7b6767;
+  }
+  .helptext__show {
+      display: none;
+  }
+</style>
+
+<style>
+  body {
+      margin: 0px;		
+  }
+  
+</style>
+
+<div class="header">
+  <div class="header__title">
+    <div class="header__title1">Japanese OCR manga<a class="header__link" href="#"><div class="github-logo"><svg class="github-logo__item" height="28" version="1.1" viewBox="0 0 16 16" width="28"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38                  0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13                 -.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07                 -.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2                 -.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09                  2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82                  2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01                  2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>
+<div class="github-logo__divider" style="flex: 0 1 7px;"></div>
+<div class="github-logo__item">GitHub</div></div></a>
+    </div>
+    <div class="header__subtitle">Автоматическое распознание иероглифов в манге</div>
+  </div>
+  <div class="header__item">
+    <div class="submenu">
+      <div class="submenu__item">
+        <div class="options-links">
+          <div class="options-links__item">
+            <div class="options-links__modeOcr">
+              <div class="button"><a class="button__link" href="#"><div class="button__text">Распознание</div></a>
+              </div>
+            </div>
+          </div>
+          <div class="options-links__item">
+            <div class="options-links__modeTokens">
+              <div class="button"><a class="button__link" href="#"><div class="button__text">Анализ предложения</div></a>
+              </div>
+            </div>
+          </div>
+          <div class="options-links__item">
+            <div class="options-links__modeTrans">
+              <div class="button"><a class="button__link" href="#"><div class="button__text">Словарь</div></a>
+              </div>
+            </div>
+          </div>
+          <div class="options-links__item">
+            <div class="options-links__modeHiragana">
+              <div class="button"><a class="button__link" href="#"><div class="button__text">Кана</div></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="submenu__item" style="margin-left: 25px;">
+        <div class="demolinks"><a class="demolinks__link" href="#" onclick="loadDemo(&quot;demo/demo1.jpg&quot;); return false;">Demo1</a><a class="demolinks__link" href="#" onclick="loadDemo(&quot;demo/demo2.png&quot;); return false;">Demo2</a><a class="demolinks__link" href="#" onclick="loadDemo(&quot;demo/demo3.jpg&quot;); return false;">Demo3</a>
+        </div>
+      </div>
+      <div class="submenu__item" style="margin-left: 25px;">
+        <div class="submenu__modeClean">
+          <div class="button"><a class="button__link" href="#"><div class="button__text">Clean</div></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="previewOcr"></div>
+<div class="content">
+  <div class="content__item content__item_more bigBlock">
+    <div class="workplace">
+      <div class="dropzone">		
+        <div class="dropzone__info">
+          <div class="dropzoneInfo">
+            <div class="dropzoneInfo__item"></div>
+            <div class="dropzoneInfo__item">
+              <div class="dropzoneInfo__label">Drag and Drop Image Here</div>
+            </div>
+            <div class="dropzoneInfo__item"></div>
+          </div>
+        </div>
+        <div class="dropzone__image"><img class="dropzone__img">
+        </div>
+      </div>
+      <div class="tokensTable">
+        <h1 class="tokensTable__loading">Грузим словари...</h1>
+        <div class="tokensTable__working">
+          <label class="tokensTable__label">
+            <textarea class="tokensTable__input" type="text" placeholder="Введите японский текст для разбора"></textarea>
+            <pre class="tokensTable__preview" style="font-size: 18px;margin-top:-8px;margin-bottom:8px;color:black;"></pre>
+          </label>
+          <table class="tokensTable__table" width="100%">
+            <thead class="tokensTable__thead">
+              <tr class="tokensTable__tr">
+                <th class="tokensTable__th">Surface form</th>
+                <th class="tokensTable__th">Базовая форма</th>
+                <th class="tokensTable__th">Часть речи</th>
+                <th class="tokensTable__th">Сопряжение тип</th>
+                <th class="tokensTable__th">Сопряжение форма</th>
+                <th class="tokensTable__th">Перевод</th>
+              </tr>
+            </thead>
+            <tbody class="tokensTable__tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="translator">
+        <h1 class="translator__loading">Грузим словарь...</h1>
+        <div class="translator__working">
+          <form class="translator__form" onsubmit="findTrans();return false;">
+<input class="translator__input" type="text">
+<input class="translator__button" type="submit" value="Найти">
+          </form>
+          <div class="translator__result"></div>
+        </div>
+      </div>
+      <div class="hiragana">
+<input class="hiragana__input" type="text">
+        <div class="hiragana__flex">
+          <div class="hiragana__item"><a class="hiragana__changeToHiragana" href="#" onclick="generateKanaHtml(&quot;hiragana&quot;);return false;">hiragana</a>
+          </div>
+          <div class="hiragana__item"><a class="hiragana__changeToKatakana" href="#" onclick="generateKanaHtml(&quot;katakana&quot;);return false;">katakana</a>
+          </div>
+        </div>
+        <div class="hiragana__table"></div>
+      </div>
+    </div>
+  </div>
+  <div class="content__item content__item_divider"></div>
+  <div class="content__item content__item_less">
+    <div class="result">
+      <div class="help">
+        <div class="button"><a class="button__link" href="#"><div class="button__text">Подсказка</div></a>
+        </div>
+      </div>
+      <div class="ocr-params">
+        <div class="ocr-params__item">
+          <div class="ocr-params__label">Язык распознавания:</div>
+<input class="ocr-params__input" id="lang_jpn" value="jpn" name="lang" type="radio" checked="checked">
+          <label class="ocr-params__inputlabel" for="lang_jpn">Jpn</label>
+<input class="ocr-params__input" id="lang_eng" value="eng" name="lang" type="radio">
+          <label class="ocr-params__inputlabel" for="lang_eng">Eng</label>
+<input class="ocr-params__input" id="lang_kor" value="kor" name="lang" type="radio">
+          <label class="ocr-params__inputlabel" for="lang_kor">Kor</label>
+<input class="ocr-params__input" id="lang_chi" value="chi" name="lang" type="radio">
+          <label class="ocr-params__inputlabel" for="lang_chi">Chi</label>
+        </div>
+        <div class="ocr-params__item">
+          <div class="ocr-params__label">Направление письма:</div>
+<input class="ocr-params__input" id="psm5" name="psm" value="5" type="radio" checked="checked">
+          <label class="ocr-params__inputlabel" for="psm5">Вертикальное</label>
+<input class="ocr-params__input" id="psm6" name="psm" value="6" type="radio">
+          <label class="ocr-params__inputlabel" for="psm6">Горизонтальное</label>
+        </div>
+        <div class="ocr-params__item">
+          <div class="ocr-params__label">Инвентировать цвета:</div>
+<input class="ocr-params__input" id="invert0" name="invert" value="0" type="radio">
+          <label class="ocr-params__inputlabel" for="invert0">Да</label>
+<input class="ocr-params__input" id="invert1" name="invert" value="1" type="radio" checked="checked">
+          <label class="ocr-params__inputlabel" for="invert1">Нет</label>
+        </div>
+        <div class="ocr-params__item">
+          <div class="ocr-params__label">Пресеты:</div>
+<input class="ocr-params__input" id="mode1" name="mode" value="1" type="radio">
+          <label class="ocr-params__inputlabel" for="mode1">mode1</label>
+<input class="ocr-params__input" id="mode2" name="mode" value="2" type="radio" checked="checked">
+          <label class="ocr-params__inputlabel" for="mode2">mode2</label>
+<input class="ocr-params__input" id="mode10" name="mode" value="10" type="radio" checked="checked">
+          <label class="ocr-params__inputlabel" for="mode10">advanced</label>
+        </div>
+        <div class="ocr-params__item advancedOptions">
+          <div class="ocr-params__label">Яркость:</div>
+<input class="ocr-params__input" id="brightness0" name="brightness" value="0" type="radio">
+          <label class="ocr-params__inputlabel" for="brightness0">0</label>
+<input class="ocr-params__input" id="brightness15" name="brightness" value="15" type="radio">
+          <label class="ocr-params__inputlabel" for="brightness15">15</label>
+<input class="ocr-params__input" id="brightness30" name="brightness" value="30" type="radio" checked="checked">
+          <label class="ocr-params__inputlabel" for="brightness30">30</label>
+        </div>
+        <div class="ocr-params__item advancedOptions">
+          <div class="ocr-params__label">Контрастность:</div>
+<input class="ocr-params__input" id="contrast0" name="contrast" value="0" type="radio">
+          <label class="ocr-params__inputlabel" for="contrast0">0</label>
+<input class="ocr-params__input" id="contrast15" name="contrast" value="15" type="radio">
+          <label class="ocr-params__inputlabel" for="contrast15">15</label>
+<input class="ocr-params__input" id="contrast30" name="contrast" value="30" type="radio">
+          <label class="ocr-params__inputlabel" for="contrast30">30</label>
+<input class="ocr-params__input" id="contrast45" name="contrast" value="45" type="radio">
+          <label class="ocr-params__inputlabel" for="contrast45">45</label>
+<input class="ocr-params__input" id="contrast60" name="contrast" value="60" type="radio" checked="checked">
+          <label class="ocr-params__inputlabel" for="contrast60">60</label>
+        </div>
+        <div class="ocr-params__item advancedOptions">
+          <div class="ocr-params__label">Zoom:</div>
+<input class="ocr-params__input" id="zoom1" name="zoom" value="1" type="radio">
+          <label class="ocr-params__inputlabel" for="zoom1">x1</label>
+<input class="ocr-params__input" id="zoom2" name="zoom" value="2" type="radio" checked="checked">
+          <label class="ocr-params__inputlabel" for="zoom2">x2</label>
+<input class="ocr-params__input" id="zoom4" name="zoom" value="4" type="radio">
+          <label class="ocr-params__inputlabel" for="zoom4">x4</label>
+        </div>
+        <div class="ocr-params__item advancedOptions">
+          <div class="ocr-params__label">Показывать canvas result:</div>
+<input class="ocr-params__input" id="preview0" name="preview" value="0" type="radio" checked="checked">
+          <label class="ocr-params__inputlabel" for="preview0">Нет</label>
+<input class="ocr-params__input" id="preview1" name="preview" value="1" type="radio">
+          <label class="ocr-params__inputlabel" for="preview1">Да</label>
+        </div>
+        <div class="ocr-params__item advancedOptions">
+          <div class="ocr-params__label">Обработка (sharpenExtra, sharpenTest):</div>
+<input class="ocr-params__input" id="filt" name="filt" value="sharpen, blur, sharpen" type="text" style="width: 100%; font-size: 16px; padding: 2px;">
+        </div>
+      </div>
+      <div class="result__item load-progress_wrap"></div>
+      <div class="result__item">
+        <div class="result__go">
+          <div class="button"><a class="button__link" href="#"><div class="button__text">Распознать</div></a>
+          </div>
+        </div>
+      </div>
+      <div class="result__item">
+        <div class="result__preview"></div>
+      </div>
+      <div class="result__item">
+<input class="result__eeeee" type="text">
+      </div>
+      <div class="result__item">
+        <div class="result__label">Результат:</div>
+        <textarea class="result__label result__label_result-orig" style="font-size: 20px;" placeholder="俺には小学校からの幼馴染がいる"></textarea>
+        <div class="result__label result__label_result-wana"></div>
+      </div>
+      <div class="result__item">
+        <div class="result__analyze">
+          <div class="button"><a class="button__link" href="#"><div class="button__text">Анализировать</div></a>
+          </div>
+        </div>
+      </div>
+<br>
+      <div class="result__item">
+        <div class="result__link googleLink"></div>
+      </div>
+      <div class="result__item">
+        <div class="result__link microsoftLink"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="helptext">
+  <div class="helptext__text"></div>
+</div>
+
+<script src="app.js"></script>
+
+</body>
+
+</html>
